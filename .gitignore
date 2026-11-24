@@ -95,6 +95,9 @@ desktop.ini
 *.pid
 *.seed
 
+# 服务运行期 JSONL 数据产物（边缘样本、标定/对齐产物、工单导入与审计）
+/data/
+
 # BEGIN S11 LOCAL SNAPSHOT EXCLUSIONS
 **/.git/**
 **/.hg/**

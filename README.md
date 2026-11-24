@@ -77,5 +77,26 @@ npm run dev
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。
 
+## 单位标定工单（换算表导入 / 分线启用 / 对齐试读）
+
+在通用单位标定模块之外，`backend/app/services/calibration_table.py` 提供工单级能力，
+专用路由前缀 `/api/unit-calibration`，前端页面 `/unit-calibration`（导航「标定工单(换算表)」）：
+
+- **表格导入与预览**：`POST /conversion-table/import` 接收 CSV（列：产线、测点编号、
+  原始单位、目标单位、换算系数、零点偏移、规则类型），逐行做量纲校验，并用该测点
+  原始序列试算「比例项（原值×系数）/ 偏移项」两项对齐前数值；目标量纲与产线工程量纲
+  不一致的行置为「冲突搁置」，不允许放行，须修正后重新导入。
+- **审批放行与分线启用**：`/rules/{id}/approve`、`/rules/{id}/enable`。一台测点任一时刻
+  只允许一套在役换算，启用续订会自动停用旧规；未放行或冲突规则不可启用，审核前在役
+  规则与正式值不变。`/lines/summary` 给出本次工单各规则的可启用范围。
+- **对齐试读**：`POST /align-trials` 先接受请求并绑定当时在役规则版本，
+  `POST /align-trials/{id}/run` 稍后真正读数。即使读数时新规则已经审批放行，同一次读取
+  仍只采用绑定的一套，其他同样覆盖该观测的规则仅作未采用备选；每行读数都记录实际
+  数值、量纲、单位与换算出处。
+- **试读/正式核对**：`GET /align-trials/{id}/comparison` 逐行对比试读值与当前在役规则的
+  正式值；量纲或单位不同（如 MPa 对 kPa）时不给数值差，只提示归一换算后再核。
+- 演示可先调 `POST /demo-seed` 生成压缩空气线 PT-AIR、水压线 PT-WATER 的在役 MPa 旧规
+  与含 300 mV 的原始样本；验收用例见 `backend/tests/test_calibration_table.py`。
+
 领域：数据工程
 子方向：数据采集、爬虫与RPA
